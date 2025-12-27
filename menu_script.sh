@@ -1,11 +1,13 @@
 #!/bin/bash
 
 ####################################################################### 
+                        # function to create table #
+#######################################################################                        
 
 createTable() {
     read -p "enter the table name: " tablename
     
-    # We use $current_db which is defined in the main script
+   
     if [ -f "$current_db/$tablename" ]; then
         echo "table $tablename already exist "
     else 
@@ -14,6 +16,11 @@ createTable() {
         metadata=""
        
         read -p "enter the number of coloums: " colnum 
+        if [ $colnum -le 0 ];
+        then 
+        echo " you entered invalid number "
+        return  ;
+        fi 
         read -p "enter the primary key name: " pkname 
         
         echo " choose the type of pk " 
@@ -54,8 +61,71 @@ createTable() {
 }
 
 ##########################################################################
+                        # function to insert into table #
+##########################################################################   
+insert_into_table() 
+{
+   read -p "enter the table name you want to insert into " tablename
+   if [ ! -f "$current_db/$tablename" ];
+   then 
+   echo " this table not exist "  
+   else
+   IFS='|' read -r -a colarray < "$current_db/$tablename.metadata"
+   row=""
+    for colmeta in "${colarray[@]}"
+    do 
+    IFS=':' read -r colname coltype ispk <<< "$colmeta"
+    while true ; 
+    do 
+     read -p "enter value for $colname ($coltype) " value 
+     if [ "$coltype" == "int" ]; 
+     then 
+     if ! [[ "$value" =~ ^[0-9]+$ ]] ;
+     then 
+     echo "invalid input , please enter an integer "
+     continue 
+     fi
+     elif [ "$coltype" == "date" ];
+     then 
+     if ! [[ "$value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+     then 
+     echo "invalid date type ,please enter yyyy-mm-dd "
+     continue
+     fi 
+     fi
+     if [ "$ispk" == "PK" ];
+     then 
+     if awk -F: -v val="$value" '$1 == val || val == "" {found=1; exit} END {if (!found) exit 1}' "$current_db/$tablename" ; 
+     then 
+     echo " invalid pk , it must be unique and not null "
+     continue 
+     fi
+     fi
+     if [[ $value == *":"* ]] ;
+     then 
+     echo "you can't use ":" in the value "
+     continue
+     fi
+     break 
 
+   done
 
+    if [ -z "$row" ];
+    then 
+    row="$value"
+    else 
+    row+=":$value"
+    fi
+
+    done
+    echo "$row" >> "$current_db/$tablename"
+    echo "row inserted successfully"
+
+    fi 
+
+}                    
+
+#############################################################################
 mkdir -p DBS_dir
 echo "choose from the following"
 PS3="enter your choice " 
@@ -92,9 +162,21 @@ do
             ls "$current_db" | grep -v ".metadata"
                  ;;
     ################################################
-    ## we will handle these cases later 
-          3) echo "drop table " ;;
-          4)echo "insert into table" ;;
+    ## 
+          3) read -p "enter the table name you want to drop : " tablename
+          if [ -f "$current_db/$tablename" ];
+          then 
+          rm "$current_db/$tablename" "$current_db/$tablename.metadata"
+          echo "this table dropped successfully "
+          else 
+          echo "this table not exist " 
+          fi
+          
+          
+          ;;
+
+          4) insert_into_table ;;
+
           5)echo "select from table " ;;
           6)echo "delete table " ;;
           7)echo "updata" ;;
