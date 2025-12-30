@@ -1,7 +1,133 @@
 #!/bin/bash
 
+###################################################################
+                          # main menu #
+###################################################################
+Main()
+{
+mkdir -p DBS_dir
+echo "choose from the following"
+PS3="enter your choice " 
+select choice in Create_Database List_Database Connect_Database Drop_Database Quit
+do
+    case $choice in
+        Create_Database)
+        create_database
+        main_display
+        ;;
+
+        List_Database)
+        echo " the list of data bases " 
+        ls ./DBS_dir 
+        main_display
+        ;;
+       
+        Connect_Database) 
+        Connect_Database
+          main_display
+        ;;
+        
+        Drop_Database)
+        Drop_Database 
+         main_display
+         ;;
+        Quit)
+            break
+            ;;
+        *) 
+            echo "Invalid option" 
+            main_display
+            ;;
+        
+    esac
+done
+}
+
 ####################################################################### 
-                        # function to create table #
+                        # function to create data base #
+####################################################################### 
+create_database()
+{
+        read -p "enter db name : " dbname 
+        if [ -d "./DBS_dir/$dbname" ];
+        then echo "this data base was already exist "
+        else mkdir ./DBS_dir/$dbname
+        echo "data base created successfully " 
+        fi
+        }
+
+####################################################################### 
+                        # function connect to data base #
+####################################################################### 
+Connect_Database()
+{
+
+        read -p "enter the data base name " dbname
+          if [ ! -d "./DBS_dir/$dbname" ];
+          then 
+                 echo "this data base not exist "      
+          else
+
+          current_db="./DBS_dir/$dbname"
+           select choice in "Create Table" "List Table" "Drop Table" "Insert into Table" "Select from Table" "Delete from Table" "Update Table" "Quit"
+          do 
+          case $REPLY in
+          1) createTable 
+          connect_display
+          ;;
+
+          2) List_Table
+            connect_display
+                 ;;
+
+
+          3) Drop_Table
+             connect_display
+              ;;
+
+          4) insert_into_table
+            connect_display
+               ;;
+
+          5) Select_From_table 
+             connect_display
+               ;;
+          6)delete_from_table
+          connect_display
+          ;;
+          7) update_table
+          connect_display
+          ;;
+          8) break ;;
+          *) echo "invalid option " 
+          connect_display
+          ;;
+
+          esac 
+          done 
+            
+            fi
+            }
+
+####################################################################### 
+                        # Drop Database #
+#######################################################################    
+Drop_Database()
+{
+      read -p "enter name of DB you want to drop "  dbname 
+      if [ -z "$dbname" ];
+         then
+             echo "you should enter the data base name "
+          return
+         fi
+        if [ ! -d "./DBS_dir/$dbname" ];
+        then echo "this data base not exist "
+        else rm -r ./DBS_dir/$dbname
+        echo "data base dropped successfully " 
+        fi
+}
+####################################################################### 
+                        # Create table #
 #######################################################################                        
 
 createTable() {
@@ -15,13 +141,13 @@ createTable() {
         sep="|"
         metadata=""
        
-        read -p "enter the number of coloums: " colnum 
+        read -p "enter the number of columns: " colnum 
         if [ $colnum -le 0 ];
         then 
         echo " you entered invalid number "
         return  ;
         fi 
-        read -p "enter the primary key name: " pkname 
+        read -p "Enter the first column name (primary key) : " pkname 
         
         echo " choose the type of pk " 
         select choice in int str 
@@ -39,7 +165,7 @@ createTable() {
 
         while [ $count -le $colnum ] 
         do 
-            read -p "enter the coloum name: " colname 
+            read -p "enter the coloum $count name : " colname 
             echo "choose the data type of the coloum " 
             select choice in int str date 
             do 
@@ -61,7 +187,36 @@ createTable() {
 }
 
 ##########################################################################
-                        # function to insert into table #
+                        # List Table #
+##########################################################################  
+List_Table() 
+{
+          if [ -z "$(ls "$current_db")" ];
+          then
+           echo "No tables, Data base is empty "
+           else
+            echo "List of Tables:"
+            ls "$current_db" | grep -v ".metadata"
+            fi
+            }
+
+##########################################################################
+                        # Drop table #
+##########################################################################   
+Drop_Table()
+           {
+          read -p "enter the table name you want to drop : " tablename
+          if [ -f "$current_db/$tablename" ];
+          then 
+          rm "$current_db/$tablename" "$current_db/$tablename.metadata"
+          echo "this table dropped successfully "
+          else 
+          echo "this table not exist " 
+          fi
+           }
+
+##########################################################################
+                        #  Insert into table #
 ##########################################################################   
 insert_into_table() 
 {
@@ -122,7 +277,6 @@ insert_into_table()
     echo "row inserted successfully"
 
     fi 
-
 }                    
 
 #############################################################################
@@ -137,16 +291,16 @@ return
 fi
 
 IFS='|' read -r -a metadataarray < "$current_db/$tablename.metadata"
-read -p "enter the number of coloums u want seclect if you want to select all colums enter 'all' " colnum 
+read -p "enter the number of coloums u want seclect if you want to select all colums enter '*' " colnum 
 
-if [ $colnum == "all" ];
+if [[ $colnum =~ "*" ]];
 then
 wherefunc "$tablename" "all"
 return
 fi
 if ! [[ "$colnum" =~ ^[0-9]+$ ]];
 then 
-echo " invalid input , enter number or 'all' "
+echo " invalid input , enter number or '*' "
 return 
 fi
 
@@ -185,8 +339,8 @@ done
 wherefunc "$tablename" "$coloumsindex"
 
 }
-###################### where func #################
 
+###################### where func #################
 wherefunc() {
     local tablename=$1
     local coloumsindex=$2
@@ -253,9 +407,6 @@ wherefunc() {
 
 }
 
-
-
-
 ##############################################################################
                                # delete #
 ##############################################################################
@@ -267,6 +418,7 @@ then
 echo "This table not exist"
 return
 fi
+
 while true;
 do 
 read -p "enter condition col name (press enter if you don't need condition) " condcol
@@ -307,174 +459,221 @@ mv "$current_db/$tablename.tmp" "$current_db/$tablename"
 
 echo "Rows deleted successfully"
 
-
 return
 fi
 done
 
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ###############################################################################
                                 # update # 
 ###############################################################################
+update_table() {
+    read -p "Enter name of the table you want to update: " tablename
+    
+    if [ ! -f "$current_db/$tablename" ]; then
+        echo "This table does not exist"
+        return
+    fi
+    
+    IFS='|' read -r -a metadataarray < "$current_db/$tablename.metadata"
+
+    while true; do
+        read -p "Enter the number of columns you want to update: " colnum 
+        if ! [[ "$colnum" =~ ^[0-9]+$ ]]; then 
+            echo "Invalid input, enter integer number : "
+            continue 
+        fi
+        break
+    done
+
+    declare -a target_indices
+    declare -a new_values
+    pk_modified=false
+    col=1
+    while [ $col -le $colnum ]; do
+        read -p "Enter name of column #$col to update: " colname
+        
+        foundindex=""
+        col_type=""
+        is_pk=""
+        
+        idx=1
+        for meta in "${metadataarray[@]}"; do
+            IFS=':' read -r name type pk <<< "$meta"
+            if [ "$name" == "$colname" ]; then
+                foundindex=$idx
+                col_type=$type
+                is_pk=$pk
+                break
+            fi
+            ((idx++))
+        done
+
+        if [ -z "$foundindex" ]; then
+            echo "Column '$colname' not found."
+            continue 
+        fi
+
+        if [ "$foundindex" -eq 1 ]; then
+            pk_modified=true
+        fi
+
+        while true; do
+            read -p "Enter new value for $colname ($col_type): " value
+            
+            if [ "$col_type" == "int" ]; then
+                if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+                    echo "Invalid input, please enter an integer."
+                    continue
+                fi
+            fi
+            
+            if [ "$col_type" == "date" ]; then
+                 if ! [[ "$value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+                    echo "Format, please enter yyyy-mm-dd."
+                    continue
+                 fi
+            fi
+
+            if [[ "$value" == *":"* ]]; then
+                echo "Value cannot contain ':'."
+                continue
+            fi
+
+            if  [ "$foundindex" -eq 1 ]; then
+                if [[ -z "$value" ]]; then
+                    echo "Invalid input: PK cannot be null/empty."
+                    continue
+                fi
+                if cut -d':' -f"$foundindex" "$current_db/$tablename" | grep -w -q "$value"; then
+                    echo "Invalid input: PK must be unique. '$value' already exists."
+                    continue
+                fi
+            fi
+            break
+        done
+ 
+        target_indices+=("$foundindex")
+        new_values+=("$value")
+        ((col++))
+    done 
+read -p "Enter the condition column name (Press Enter to update ALL rows): " condcol
+    
+    update_all=false
+    condindex=""
+
+    if [ -z "$condcol" ]; then
+        update_all=true
+        echo "Warning: You are about to update ALL rows."
+    else
+        idx=1
+        for meta in "${metadataarray[@]}"; do 
+            IFS=':' read -r name _ _ <<< "$meta"
+            if [ "$name" == "$condcol" ]; then 
+                condindex=$idx
+                break 
+            fi
+            ((idx++))
+        done
+        
+        if [ -z "$condindex" ]; then 
+            echo "Condition column not found."
+            return
+        fi 
+        
+        read -p "Enter value for condition ($condcol): " condvalue
+    fi
+if [ "$pk_modified" = true ]; then
+        
+        match_count=0
+        
+        if [ "$update_all" = true ]; then
+            match_count=$(wc -l < "$current_db/$tablename")
+        else
+            while IFS=':' read -r -a row; do
+                current_val="${row[$((condindex-1))]}"
+                clean_row_val=$(echo "$current_val" | xargs)
+                clean_user_val=$(echo "$condvalue" | xargs)
+                
+                if [ "$clean_row_val" == "$clean_user_val" ]; then
+                    ((match_count++))
+                fi
+            done < "$current_db/$tablename"
+        fi
+
+        if [ "$match_count" -gt 1 ];
+         then
+            echo "You can not set the same Primary Key for multible rows"
+            return
+        fi
+    fi
+    temp_file="$current_db/$tablename.tmp"
+    touch "$temp_file"
+    updated_flag=false
+
+    while IFS=':' read -r -a row; do
+        
+        should_update=false
+
+        if [ "$update_all" = true ]; then
+            should_update=true
+        else
+
+            current_val="${row[$((condindex-1))]}"
+            clean_row_val=$(echo "$current_val" | xargs)
+            clean_user_val=$(echo "$condvalue" | xargs)
+            
+            if [ "$clean_row_val" == "$clean_user_val" ]; then
+                should_update=true
+            fi
+        fi
+
+        if [ "$should_update" = true ]; then
+            for i in "${!target_indices[@]}"; do
+                curr_col_idx=${target_indices[$i]} 
+                curr_new_val=${new_values[$i]}     
+                row[$((curr_col_idx-1))]="$curr_new_val"
+            done
+            updated_flag=true
+        fi
+        
+        (IFS=':'; echo "${row[*]}") >> "$temp_file"
+        
+    done < "$current_db/$tablename"
+
+    mv "$temp_file" "$current_db/$tablename"
+
+    if [ "$updated_flag" = true ]; 
+    then
+             echo "Rows matching condition updated successfully."
+    else
+        echo "No rows matched the condition."
+    fi
+}
 
 
+###################################################################
+                          # Display connect menu #
+###################################################################
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###########################################
 connect_display() 
 {
     echo "------------------------------------------------------------"
  echo -e " 1) "Create Table"\t2) "List Table"\t   \t3) "Drop Table"\t4) "Insert into Table"\n 5) "Select from Table"\t6) "Delete from Table"\t7) "Update Table"\t8) "Quit""
 }
+
+###################################################################
+                          # Display main menu #
+###################################################################
+
 main_display()
 {
      echo "------------------------------------------------------------"
     echo -e " 1) "Create_Database"\t 2) "List_Database"\n 3) "Connect_Database"\t 4) "Drop_Database"\t 5) "Quit""
 }
 
-
-
-
-
 ###################################################################
-                          # main menu #
+                          # Call Main #
 ###################################################################
-mkdir -p DBS_dir
-echo "choose from the following"
-PS3="enter your choice " 
-select choice in Create_Database List_Database Connect_Database Drop_Database Quit
-do
-    case $choice in
-        Create_Database)
-        read -p "enter db name : " dbname 
-        if [ -d "./DBS_dir/$dbname" ];
-        then echo "this data base was already exist "
-        else mkdir ./DBS_dir/$dbname
-        echo "data base created successfully " 
-        fi
-        main_display
-        ;;
-        ####################################################################
-        List_Database)
-        echo " the list of data bases " 
-        ls ./DBS_dir 
-        main_display
-        ;;
-        #######################################################################
-        Connect_Database)
-        read -p "enter the data base name " dbname
-          if [ -d "./DBS_dir/$dbname" ];
-          then 
-          current_db="./DBS_dir/$dbname"
-           select choice in "Create Table" "List Table" "Drop Table" "Insert into Table" "Select from Table" "Delete from Table" "Update Table" "Quit"
-          do 
-          case $REPLY in
-          1) createTable 
-          connect_display
-          ;;
-
-    #####################################
-          2)
-            echo "List of Tables:"
-            ls "$current_db" | grep -v ".metadata"
-            connect_display
-                 ;;
-    ################################################
-    ## 
-          3) read -p "enter the table name you want to drop : " tablename
-          if [ -f "$current_db/$tablename" ];
-          then 
-          rm "$current_db/$tablename" "$current_db/$tablename.metadata"
-          echo "this table dropped successfully "
-          else 
-          echo "this table not exist " 
-          fi
-          connect_display
-          ;;
-
-          4) insert_into_table
-         connect_display
-           ;;
-
-          5) Select_From_table 
-          connect_display
-          ;;
-          6)delete_from_table
-          connect_display
-          ;;
-          7)echo "updata" 
-          connect_display
-          ;;
-          8) break ;;
-          *) echo "invalid option " 
-          connect_display
-          ;;
-#######################################
-          esac 
-          done 
-      
-          else 
-              echo "this data base not exist " 
-
-          fi
-
-          main_display
-        ;;
-        
-        Drop_Database)
-        read -p "enter name of DB you want to drop "  dbname 
-        if [ ! -d "./DBS_dir/$dbname" ];
-        then echo "this data base not exist "
-        else rm -r ./DBS_dir/$dbname
-        echo "data base dropped successfully " 
-        fi
-         main_display
-         ;;
-        Quit)
-            break
-            ;;
-        *) 
-            echo "Invalid option" 
-            main_display
-            ;;
-        
-    esac
-done
+Main
