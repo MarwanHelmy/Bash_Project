@@ -497,8 +497,8 @@ update_table() {
         foundindex=""
         col_type=""
         is_pk=""
-        
         idx=1
+
         for meta in "${metadataarray[@]}"; do
             IFS=':' read -r name type pk <<< "$meta"
             if [ "$name" == "$colname" ]; then
@@ -518,9 +518,14 @@ update_table() {
         if [ "$foundindex" -eq 1 ]; then
             pk_modified=true
         fi
-
+     
+   
         while true; do
-            read -p "Enter new value for $colname ($col_type): " value
+           if [ "$col_type" == "date" ];
+        then 
+       echo "please enter this format 'yyyy-mm-dd'"
+            fi
+              read -p "Enter new value for $colname ($col_type): " value
             
             if [ "$col_type" == "int" ]; then
                 if ! [[ "$value" =~ ^[0-9]+$ ]]; then
@@ -530,8 +535,9 @@ update_table() {
             fi
             
             if [ "$col_type" == "date" ]; then
+                
                  if ! [[ "$value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-                    echo "Format, please enter yyyy-mm-dd."
+                 echo "invalid input "
                     continue
                  fi
             fi
@@ -565,9 +571,11 @@ read -p "Enter the condition column name (Press Enter to update ALL rows): " con
 
     if [ -z "$condcol" ]; then
         update_all=true
-        echo "Warning: You are about to update ALL rows."
+        echo "You are about to update ALL rows."
     else
         idx=1
+        
+        #loop to get the index number of the condition column 
         for meta in "${metadataarray[@]}"; do 
             IFS=':' read -r name _ _ <<< "$meta"
             if [ "$name" == "$condcol" ]; then 
@@ -591,15 +599,19 @@ if [ "$pk_modified" = true ]; then
         if [ "$update_all" = true ]; then
             match_count=$(wc -l < "$current_db/$tablename")
         else
-            while IFS=':' read -r -a row; do
-                current_val="${row[$((condindex-1))]}"
+        readarray -t rows < "$current_db/$tablename"
+        for line in "${rows[@]}";
+         do
+         IFS=':' read -r -a columns <<< "$line"
+                current_val="${columns[$((condindex-1))]}"
                 clean_row_val=$(echo "$current_val" | xargs)
                 clean_user_val=$(echo "$condvalue" | xargs)
                 
-                if [ "$clean_row_val" == "$clean_user_val" ]; then
+                if [ "$clean_row_val" == "$clean_user_val" ];
+                 then
                     ((match_count++))
                 fi
-            done < "$current_db/$tablename"
+            done 
         fi
 
         if [ "$match_count" -gt 1 ];
@@ -628,7 +640,7 @@ if [ "$pk_modified" = true ]; then
                 should_update=true
             fi
         fi
-
+         # loop to update columns in the matched rows  
         if [ "$should_update" = true ]; then
             for i in "${!target_indices[@]}"; do
                 curr_col_idx=${target_indices[$i]} 
