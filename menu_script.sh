@@ -5,6 +5,8 @@
 ###################################################################
 Main()
 {
+welecome
+
 mkdir -p DBS_dir
 echo "choose from the following"
 PS3="enter your choice " 
@@ -43,12 +45,56 @@ do
 done
 }
 
+###################################################################
+                          # Welcome #
+###################################################################
+welecome()
+{
+
+    clear
+   msg_lines=(
+        "####################################################"
+        "##          Welcome to Our DBMS Project           ##"
+        "##                                                ##"
+        "##      This project Designed & Developed By:     ##"
+        "##               -> Marwan Helmy                  ##"
+        "##               -> Mahmoud Eissa                 ##"
+        "##                                                ##"
+        "##       Supervised by: Eng Mohamed ElSabugh      ##"
+        "####################################################"
+    )
+
+    for line in "${msg_lines[@]}"; do        
+        length=${#line}
+        for (( i=0; i<length; i++ )); do
+            echo -n "${line:i:1}"             
+            sleep 0.026
+        done
+        
+        echo "" 
+    done
+    echo ""
+    echo "     Starting System..."
+  read 
+    clear
+}
 ####################################################################### 
                         # function to create data base #
 ####################################################################### 
 create_database()
 {
         read -p "enter db name : " dbname 
+        if [[ $dbname =~ "*" ]];
+        then
+        echo "you should not enter '*'"
+            return
+        fi
+        if [ -z $dbname ];
+        then
+        echo "you should write the name of DB"
+            return
+        fi
+
         if [ -d "./DBS_dir/$dbname" ];
         then echo "this data base was already exist "
         else mkdir ./DBS_dir/$dbname
@@ -132,7 +178,16 @@ Drop_Database()
 
 createTable() {
     read -p "enter the table name: " tablename
-    
+            if [[ $tablename =~ "*" ]];
+        then
+        echo "you should not enter '*'"
+            return
+        fi
+                if [ -z $tablename ];
+        then
+        echo "you should write the name of Table"
+            return
+        fi
    
     if [ -f "$current_db/$tablename" ]; then
         echo "table $tablename already exist "
@@ -520,10 +575,10 @@ update_table() {
         fi
      
    
-        while true; do
-           if [ "$col_type" == "date" ];
-        then 
-       echo "please enter this format 'yyyy-mm-dd'"
+         while true; do
+             if [ "$col_type" == "date" ];
+                then 
+             echo "please enter this format 'yyyy-mm-dd'"
             fi
               read -p "Enter new value for $colname ($col_type): " value
             
