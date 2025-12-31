@@ -261,6 +261,11 @@ List_Table()
 Drop_Table()
            {
           read -p "enter the table name you want to drop : " tablename
+      if [ -z "$tablename" ];
+         then
+             echo "you should enter table name "
+          return
+         fi
           if [ -f "$current_db/$tablename" ];
           then 
           rm "$current_db/$tablename" "$current_db/$tablename.metadata"
